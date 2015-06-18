@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+	<property>
+			<name>url.filter.regex</name>
+			<value>http://news.sohu.com/\d{8}/.*?\.shtml</value>
+	</property>
+	
+	<property>
+		<name>tablename</name>
+		<value>crawlertest</value>
+	</property>
+	
+</configuration>
