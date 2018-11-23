@@ -30,7 +30,7 @@ public class CrawlerRecordReader extends RecordReader<LongWritable, Text> {
     private LongWritable key = null;
     private Text value = null;
     // ----------------------
-    // ĞĞ·Ö¸ô·û£¬¼´Ò»Ìõ¼ÇÂ¼µÄ·Ö¸ô·û
+    // è¡Œåˆ†éš”ç¬¦ï¼Œå³ä¸€æ¡è®°å½•çš„åˆ†éš”ç¬¦
     private byte[] separator = "\n".getBytes();
 
     // --------------------
@@ -166,39 +166,39 @@ public class CrawlerRecordReader extends RecordReader<LongWritable, Text> {
             boolean newline = false;
             int sepPosn = 0;
             do {
-                // ÒÑ¾­¶Áµ½bufferµÄÄ©Î²ÁË£¬¶ÁÏÂÒ»¸öbuffer
+                // å·²ç»è¯»åˆ°bufferçš„æœ«å°¾äº†ï¼Œè¯»ä¸‹ä¸€ä¸ªbuffer
                 if (this.bufferPosn >= this.bufferLength) {
                     bufferPosn = 0;
                     bufferLength = in.read(buffer);
-                    // ¶Áµ½ÎÄ¼şÄ©Î²ÁË£¬ÔòÌø³ö£¬½øĞĞÏÂÒ»¸öÎÄ¼şµÄ¶ÁÈ¡
+                    // è¯»åˆ°æ–‡ä»¶æœ«å°¾äº†ï¼Œåˆ™è·³å‡ºï¼Œè¿›è¡Œä¸‹ä¸€ä¸ªæ–‡ä»¶çš„è¯»å–
                     if (bufferLength <= 0) {
                         break;
                     }
                 }
                 int startPosn = this.bufferPosn;
                 for (; bufferPosn < bufferLength; bufferPosn++) {
-                    // ´¦ÀíÉÏÒ»¸öbufferµÄÎ²°Í±»ÇĞ³ÉÁËÁ½°ëµÄ·Ö¸ô·û(Èç¹û·Ö¸ô·ûÖĞÖØ¸´×Ö·û¹ı¶àÔÚÕâÀï»áÓĞÎÊÌâ)
+                    // å¤„ç†ä¸Šä¸€ä¸ªbufferçš„å°¾å·´è¢«åˆ‡æˆäº†ä¸¤åŠçš„åˆ†éš”ç¬¦(å¦‚æœåˆ†éš”ç¬¦ä¸­é‡å¤å­—ç¬¦è¿‡å¤šåœ¨è¿™é‡Œä¼šæœ‰é—®é¢˜)
                     if (sepPosn > 0 && buffer[bufferPosn] != separator[sepPosn]) {
                         sepPosn = 0;
                     }
-                    // Óöµ½ĞĞ·Ö¸ô·ûµÄµÚÒ»¸ö×Ö·û
+                    // é‡åˆ°è¡Œåˆ†éš”ç¬¦çš„ç¬¬ä¸€ä¸ªå­—ç¬¦
                     if (buffer[bufferPosn] == separator[sepPosn]) {
                         bufferPosn++;
                         int i = 0;
-                        // ÅĞ¶Ï½ÓÏÂÀ´µÄ×Ö·ûÊÇ·ñÒ²ÊÇĞĞ·Ö¸ô·ûÖĞµÄ×Ö·û
+                        // åˆ¤æ–­æ¥ä¸‹æ¥çš„å­—ç¬¦æ˜¯å¦ä¹Ÿæ˜¯è¡Œåˆ†éš”ç¬¦ä¸­çš„å­—ç¬¦
                         for (++sepPosn; sepPosn < separator.length; i++, sepPosn++) {
-                            // bufferµÄ×îºó¸ÕºÃÊÇ·Ö¸ô·û£¬ÇÒ·Ö¸ô·û±»²»ĞÒµØÇĞ³ÉÁËÁ½°ë
+                            // bufferçš„æœ€ååˆšå¥½æ˜¯åˆ†éš”ç¬¦ï¼Œä¸”åˆ†éš”ç¬¦è¢«ä¸å¹¸åœ°åˆ‡æˆäº†ä¸¤åŠ
                             if (bufferPosn + i >= bufferLength) {
                                 bufferPosn += i - 1;
                                 break;
                             }
-                            // Ò»µ©ÆäÖĞÓĞÒ»¸ö×Ö·û²»ÏàÍ¬£¬¾ÍÅĞ¶¨Îª²»ÊÇ·Ö¸ô·û
+                            // ä¸€æ—¦å…¶ä¸­æœ‰ä¸€ä¸ªå­—ç¬¦ä¸ç›¸åŒï¼Œå°±åˆ¤å®šä¸ºä¸æ˜¯åˆ†éš”ç¬¦
                             if (this.buffer[this.bufferPosn + i] != separator[sepPosn]) {
                                 sepPosn = 0;
                                 break;
                             }
                         }
-                        // µÄÈ·Óöµ½ÁËĞĞ·Ö¸ô·û
+                        // çš„ç¡®é‡åˆ°äº†è¡Œåˆ†éš”ç¬¦
                         if (sepPosn == separator.length) {
                             bufferPosn += i;
                             newline = true;
@@ -209,14 +209,14 @@ public class CrawlerRecordReader extends RecordReader<LongWritable, Text> {
                 }
                 int readLength = this.bufferPosn - startPosn;
                 bytesConsumed += readLength;
-                // ĞĞ·Ö¸ô·û²»·ÅÈë¿éÖĞ
+                // è¡Œåˆ†éš”ç¬¦ä¸æ”¾å…¥å—ä¸­
                 if (readLength > maxLineLength - txtLength) {
                     readLength = maxLineLength - txtLength;
                 }
                 if (readLength > 0) {
                     record.append(this.buffer, startPosn, readLength);
                     txtLength += readLength;
-                    // È¥µô¼ÇÂ¼µÄ·Ö¸ô·û
+                    // å»æ‰è®°å½•çš„åˆ†éš”ç¬¦
                     if (newline) {
                         str.set(record.getBytes(), 0, record.getLength()
                                 - separator.length);
