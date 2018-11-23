@@ -1,5 +1,8 @@
 package org.crawler.util;
 
+import lombok.extern.slf4j.Slf4j;
+
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
@@ -7,60 +10,58 @@ import java.net.URLConnection;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
+@Slf4j
 public class HttpDownloader implements Callable<String> {
-	URLConnection connection;
-	FileChannel outputChann;
-	public static volatile int count = 0;
+    private URLConnection connection;
+    private FileChannel outputChann;
+    private AtomicInteger count;
 
-	@SuppressWarnings("resource")
-	public static void main(String[] args) throws Exception {
+    public HttpDownloader(String url, FileChannel fileChannel, AtomicInteger count) throws Exception {
+        this.count = count;
+        connection = (new URL(url)).openConnection();
+        this.outputChann = fileChannel;
+    }
 
-		ExecutorService poll = Executors.newFixedThreadPool(100);
+    public static void main(String[] args) throws Exception {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(10, 10, 10, TimeUnit.MILLISECONDS,
+                new LinkedBlockingQueue<>(100));
+        LocalDate localeDate = LocalDate.now();
+        AtomicInteger count = new AtomicInteger(0);
+        for (int i = 0; i < 100; i++) {
+            String fileName = "files" + File.separator + localeDate.toString() + "_" + i + ".txt";
+            executor.submit(new HttpDownloader("https://www.sina.com",
+                    (new FileOutputStream(fileName)).getChannel(), count));
+        }
+        long start = System.currentTimeMillis();
+        while (!executor.isTerminated()) {
+            Thread.sleep(1000);
+            log.info("å·²è¿è¡Œ"
+                    + ((System.currentTimeMillis() - start) / 1000) + "ç§’ï¼Œ"
+                    + count.get() + "ä¸ªä»»åŠ¡è¿˜åœ¨è¿è¡Œ");
+        }
+        executor.shutdown();
+    }
 
-		for (int i = 0; i < 100; i++) {
-			Calendar now = Calendar.getInstance();
-			String fileName = "D:/hadoop-2.4.0/" + now.get(Calendar.YEAR) + "Äê"
-					+ (now.get(Calendar.MONTH) + 1) + "ÔÂ"
-					+ now.get(Calendar.DAY_OF_MONTH) + "ÈÕ--" + i + ".txt";
-			poll.submit(new HttpDownloader("http://www.sina.com",
-					(new FileOutputStream(fileName)).getChannel()));
-		}
-
-		poll.shutdown();
-
-		long start = System.currentTimeMillis();
-		while (!poll.isTerminated()) {
-			Thread.sleep(1000);
-			System.out.println("ÒÑÔËÐÐ"
-					+ ((System.currentTimeMillis() - start) / 1000) + "Ãë£¬"
-					+ HttpDownloader.count + "¸öÈÎÎñ»¹ÔÚÔËÐÐ");
-		}
-	}
-
-	public HttpDownloader(String url, FileChannel fileChannel) throws Exception {
-		synchronized (HttpDownloader.class) {
-			count++;
-		}
-		connection = (new URL(url)).openConnection();
-		this.outputChann = fileChannel;
-	}
-
-	public String call() throws Exception {
-		connection.connect();
-		InputStream inputStream = connection.getInputStream();
-		ReadableByteChannel rChannel = Channels.newChannel(inputStream);
-		outputChann.transferFrom(rChannel, 0, Integer.MAX_VALUE);
-		// System.out.println(Thread.currentThread().getName() + " completed!");
-		inputStream.close();
-		outputChann.close();
-		synchronized (HttpDownloader.class) {
-			count--;
-		}
-		return null;
-	}
+    @Override
+    public String call() throws Exception {
+        connection.connect();
+        this.count.incrementAndGet();
+        InputStream inputStream = connection.getInputStream();
+        ReadableByteChannel rChannel = Channels.newChannel(inputStream);
+        outputChann.transferFrom(rChannel, 0, Integer.MAX_VALUE);
+        inputStream.close();
+        outputChann.close();
+        Thread.sleep(2000);
+        synchronized (HttpDownloader.class) {
+            count.decrementAndGet();
+        }
+        return null;
+    }
 }

@@ -4,25 +4,25 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Partitioner;
 
-//½Ó¿ÚPartitioner¼Ì³ĞJobConfigurable£¬ËùÒÔÕâÀïÓĞÁ½¸öoverride·½·¨
-public class HostShuffle extends Partitioner<Text, LongWritable>{
+//æ¥å£Partitionerç»§æ‰¿JobConfigurableï¼Œæ‰€ä»¥è¿™é‡Œæœ‰ä¸¤ä¸ªoverrideæ–¹æ³•
+public class HostShuffle extends Partitioner<Text, LongWritable> {
 
-	/** 
-     * getPartition()·½·¨µÄ 
-     * ÊäÈë²ÎÊı£º¼ü/Öµ¶Ô<key,value>ÓëreducerÊıÁ¿numReduceTasks 
-     * Êä³ö²ÎÊı£º·ÖÅäµÄReducer±àºÅ£¬ÕâÀïÊÇresult 
-     * */  
-	@Override
-	public int getPartition(Text key, LongWritable value, int numReduceTasks) {
-		 // TODO Auto-generated method stub
-		String url = key.toString();
-		if(url.contains("http")){
-			url = url.substring(url.indexOf("//"), url.indexOf("/", url.indexOf("//")));
-		}else if(url.contains("/")){
-			url = url.substring(0, url.indexOf("/"));
-		}
-		return (url.hashCode() & Integer.MAX_VALUE) % numReduceTasks;  
-	}
+    /**
+     * getPartition()æ–¹æ³•çš„
+     * è¾“å…¥å‚æ•°ï¼šé”®/å€¼å¯¹<key,value>ä¸reduceræ•°é‡numReduceTasks
+     * è¾“å‡ºå‚æ•°ï¼šåˆ†é…çš„Reducerç¼–å·ï¼Œè¿™é‡Œæ˜¯result
+     */
+    @Override
+    public int getPartition(Text key, LongWritable value, int numReduceTasks) {
+        // TODO Auto-generated method stub
+        String url = key.toString();
+        if (url.contains("http")) {
+            url = url.substring(url.indexOf("//"), url.indexOf("/", url.indexOf("//")));
+        } else if (url.contains("/")) {
+            url = url.substring(0, url.indexOf("/"));
+        }
+        return (url.hashCode() & Integer.MAX_VALUE) % numReduceTasks;
+    }
 
 
 }

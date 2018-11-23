@@ -1,101 +1,103 @@
 package org.crawler.util;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.WritableComparable;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+
+@Slf4j
 public class OutLinksWritable implements WritableComparable<OutLinksWritable> {
 
-	/**
-	 * Ò»¸ö´æ·Å url µÄÊı×é¡£
-	 * Èç¹ûÎ´·¢ÉúÖØ¶¨ÏòÔò outlinksÎª´ÓÍøÒ³ÖĞ½âÎö³öÀ´µÄÁ´³öÁ´½Ó¼¯ºÏ£»
-	 * ·ñÔò,outlinksÖ»ÓĞÒ»¸öÔªËØ£¬ÎªÖØ¶¨ÏòºóµÄÕæÊµ url
-	 */
-	private TextArrayWritable outLinks = new TextArrayWritable();
-	
-	/**
-	 * ±ê¼Ç outlinks Êı×éÀïµÄ url ÀàĞÍ¡£
-	 * Èç¹ûÊÇÁ´³öÁ´½Ó¼¯ºÏÔò typeOfOutlink Îª0£»
-	 * Èç¹ûÊÇÕæÊµ url Ôò typeOfOutlink Îª1¡£
-	 */
-	private IntWritable typeOfOutlink;
-	
-	/**
-	 * Ã¿µ±Á´³ö URL ¿âÖĞĞ´ÈëÒ»¸ö OutLinksWritable ÀàĞÍµÄÊı¾İÊ±
-	 * »áÎªÕâ¸öÊı¾İÉú³ÉÒ»¸öÊ±¼ä´Á£¬ÓÃÀ´Çø·Ö²»Í¬µÄÊı¾İ
-	 */
-	private LongWritable timeStamp;
-	
+    /**
+     * ä¸€ä¸ªå­˜æ”¾ url çš„æ•°ç»„ã€‚
+     * å¦‚æœæœªå‘ç”Ÿé‡å®šå‘åˆ™ outlinksä¸ºä»ç½‘é¡µä¸­è§£æå‡ºæ¥çš„é“¾å‡ºé“¾æ¥é›†åˆï¼›
+     * å¦åˆ™,outlinksåªæœ‰ä¸€ä¸ªå…ƒç´ ï¼Œä¸ºé‡å®šå‘åçš„çœŸå® url
+     */
+    private TextArrayWritable outLinks = new TextArrayWritable();
 
-	public TextArrayWritable getOutLinks() {
-		return outLinks;
-	}
+    /**
+     * æ ‡è®° outlinks æ•°ç»„é‡Œçš„ url ç±»å‹ã€‚
+     * å¦‚æœæ˜¯é“¾å‡ºé“¾æ¥é›†åˆåˆ™ typeOfOutlink ä¸º0ï¼›
+     * å¦‚æœæ˜¯çœŸå® url åˆ™ typeOfOutlink ä¸º1ã€‚
+     */
+    private IntWritable typeOfOutlink;
 
-	public void setOutLinks(TextArrayWritable outLinks) {
-		this.outLinks = outLinks;
-	}
+    /**
+     * æ¯å½“é“¾å‡º URL åº“ä¸­å†™å…¥ä¸€ä¸ª OutLinksWritable ç±»å‹çš„æ•°æ®æ—¶
+     * ä¼šä¸ºè¿™ä¸ªæ•°æ®ç”Ÿæˆä¸€ä¸ªæ—¶é—´æˆ³ï¼Œç”¨æ¥åŒºåˆ†ä¸åŒçš„æ•°æ®
+     */
+    private LongWritable timeStamp;
 
-	public IntWritable getTypeOfOutlink() {
-		return typeOfOutlink;
-	}
 
-	public void setTypeOfOutlink(IntWritable typeOfOutlink) {
-		this.typeOfOutlink = typeOfOutlink;
-	}
+    public TextArrayWritable getOutLinks() {
+        return outLinks;
+    }
 
-	public LongWritable getTimeStamp() {
-		return timeStamp;
-	}
+    public void setOutLinks(TextArrayWritable outLinks) {
+        this.outLinks = outLinks;
+    }
 
-	public void setTimeStamp(LongWritable timeStamp) {
-		this.timeStamp = timeStamp;
-	}
+    public IntWritable getTypeOfOutlink() {
+        return typeOfOutlink;
+    }
 
-	public void readFields(DataInput input) throws IOException {
-		// TODO Auto-generated method stub
-		this.outLinks.readFields(input);
-		this.timeStamp.readFields(input);
-		this.typeOfOutlink.readFields(input);
-	}
+    public void setTypeOfOutlink(IntWritable typeOfOutlink) {
+        this.typeOfOutlink = typeOfOutlink;
+    }
 
-	public void write(DataOutput output) throws IOException {
-		// TODO Auto-generated method stub
-		this.outLinks.write(output);
-		this.timeStamp.write(output);
-		this.typeOfOutlink.write(output);
-	}
+    public LongWritable getTimeStamp() {
+        return timeStamp;
+    }
 
-	public int compareTo(OutLinksWritable arg0) {
-		// TODO Auto-generated method stub
-		int cmp = this.outLinks.toString().compareTo(arg0.outLinks.toString());
-		if(cmp != 0){
-			return cmp;
-		}
-		int cmp2 = this.timeStamp.compareTo(arg0.timeStamp);
-		if(cmp != 0){
-			return cmp2;
-		}
-		return this.typeOfOutlink.compareTo(arg0.typeOfOutlink);
-	}
+    public void setTimeStamp(LongWritable timeStamp) {
+        this.timeStamp = timeStamp;
+    }
 
-	@Override
-	public String toString() {
-		StringBuffer str = new StringBuffer();
-		String[] urls = this.outLinks.toStrings();
-		int i = 1;
-		for(String t : urls){
-			
-			System.out.println("url"+i+": "+t);
-			str.append(t).append("|");
-			i++;
-		}
-		str.append(this.typeOfOutlink+"|"+this.timeStamp);
-		return str.toString();
-	}
-	
+    @Override
+    public void readFields(DataInput input) throws IOException {
+        this.outLinks.readFields(input);
+        this.timeStamp.readFields(input);
+        this.typeOfOutlink.readFields(input);
+    }
+
+    @Override
+    public void write(DataOutput output) throws IOException {
+        this.outLinks.write(output);
+        this.timeStamp.write(output);
+        this.typeOfOutlink.write(output);
+    }
+
+    @Override
+    public int compareTo(OutLinksWritable arg0) {
+        int cmp = this.outLinks.toString().compareTo(arg0.outLinks.toString());
+        if (cmp != 0) {
+            return cmp;
+        }
+        int cmp2 = this.timeStamp.compareTo(arg0.timeStamp);
+        if (cmp != 0) {
+            return cmp2;
+        }
+        return this.typeOfOutlink.compareTo(arg0.typeOfOutlink);
+    }
+
+    @Override
+    public String toString() {
+        StringBuffer str = new StringBuffer();
+        String[] urls = this.outLinks.toStrings();
+        int i = 1;
+        for (String t : urls) {
+
+            log.info("url" + i + ": " + t);
+            str.append(t).append("|");
+            i++;
+        }
+        str.append(this.typeOfOutlink + "|" + this.timeStamp);
+        return str.toString();
+    }
+
 
 }

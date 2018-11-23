@@ -1,9 +1,7 @@
 /**
- * 
+ *
  */
 package org.crawler.crawlerdriver;
-
-import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
@@ -29,107 +27,107 @@ import org.crawler.util.Downloader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 /**
  * @author lin
- *
  */
 public class CrawlerDriver extends Configured implements Tool {
 
-	public static Logger logger = LoggerFactory.getLogger(CrawlerDriver.class);
-	
-	private static Configuration conf =  HBaseConfiguration.create();
-	
-	static{
-		conf.addResource("app-config.xml");
-	}
-	
-	public static class InverseMapper extends TableMapper<Text, LongWritable> {
+    public static Logger logger = LoggerFactory.getLogger(CrawlerDriver.class);
 
-		private Text key = new Text();
-		private LongWritable value = new LongWritable(1);
+    private static Configuration conf = HBaseConfiguration.create();
 
-		public void map(ImmutableBytesWritable ikey, Result values,
-				Context context) throws IOException, InterruptedException {
+    static {
+        conf.addResource("conf/app-config.xml");
+    }
 
-			for (Cell cell : values.rawCells()) {
-				boolean flag = Boolean.parseBoolean(Bytes.toString(CellUtil
-						.cloneValue(cell)));
-				if (flag == false) {
-					key.set(CellUtil.cloneRow(cell));
-					context.write(key, value);
-				}
-			}
-		}
+    public static void main(String[] args) throws IOException,
+            InterruptedException {
+        try {
+            int returnCode = ToolRunner.run(new CrawlerDriver(), args);
+            System.exit(returnCode);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+    }
 
-	}
+    @Override
+    public int run(String[] args) throws ClassNotFoundException, IOException,
+            InterruptedException {
 
-	public static class CrawlerReducer extends
-			TableReducer<Text, LongWritable, ImmutableBytesWritable> {
-		public void reduce(Text url, Iterable<LongWritable> values,
-				Context context) throws IOException, InterruptedException {
-			System.out.println("Start CrawlerReducer...");
-			System.out.println("url:" + url);
-			if (url != null && url.toString() != "") {
-				String document = Downloader.Download(url);
-				if (null != document) {
-					Put put = new Put(Bytes.toBytes(url.toString()));
-					DocumentWritable documentWritable = new DocumentWritable(
-							url.toString(), document);
-					put.add(Bytes.toBytes("doc"), Bytes.toBytes("document"),Bytes.toBytes(documentWritable.getDocument()));
-					put.add(Bytes.toBytes("doc"),
-							Bytes.toBytes("redirectFrom"),
-							Bytes.toBytes(documentWritable.getRedirectFrom()));
-					put.add(Bytes.toBytes("doc"), Bytes.toBytes("metaFollow"),
-							Bytes.toBytes(documentWritable.getMetaFollow()));
-					put.add(Bytes.toBytes("doc"), Bytes.toBytes("metaIndex"),
-							Bytes.toBytes(documentWritable.getMetaIndex()));
-					context.write(
-							new ImmutableBytesWritable(Bytes.toBytes(url
-									.toString())), put);
-				}
-			}
+        String tablename = conf.get("tablename");
+        Job job = Job.getInstance(conf, "CrawlerDriver");
+        job.setJarByClass(CrawlerDriver.class);
+        job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, tablename);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class);
+        job.setOutputKeyClass(ImmutableBytesWritable.class);
+        job.setOutputValueClass(Put.class);
+        job.setOutputFormatClass(TableOutputFormat.class);
+        Scan scan = new Scan();
+        scan.addFamily(Bytes.toBytes("in"));
+        scan.setCaching(10);
+        scan.setBatch(10);
+        TableMapReduceUtil.initTableMapperJob(tablename, scan,
+                InverseMapper.class, Text.class, LongWritable.class, job);
+        TableMapReduceUtil.initTableReducerJob(tablename, CrawlerReducer.class,
+                job);
 
-		}
-	}
+        job.waitForCompletion(true);
+        return job.isSuccessful() ? 1 : 0;
+    }
 
-	public int run(String[] args) throws ClassNotFoundException, IOException,
-			InterruptedException {
-		
-		String tablename = conf.get("tablename");
-		Job job = Job.getInstance(conf, "CrawlerDriver");
-		job.setJarByClass(CrawlerDriver.class);
+    public static class InverseMapper extends TableMapper<Text, LongWritable> {
 
-		job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, tablename);
-		job.setMapOutputKeyClass(Text.class);
-		job.setMapOutputValueClass(LongWritable.class);
-		// TODO: specify output types
-		job.setOutputKeyClass(ImmutableBytesWritable.class);
-		job.setOutputValueClass(Put.class);
-		job.setOutputFormatClass(TableOutputFormat.class);
-		Scan scan = new Scan();
-		scan.addFamily(Bytes.toBytes("in"));
-		scan.setCaching(10);
-		scan.setBatch(10);
-		TableMapReduceUtil.initTableMapperJob(tablename, scan,
-				InverseMapper.class, Text.class, LongWritable.class, job);
-		TableMapReduceUtil.initTableReducerJob(tablename, CrawlerReducer.class,
-				job);
+        private Text key = new Text();
+        private LongWritable value = new LongWritable(1);
 
-		job.waitForCompletion(true);
-		return job.isSuccessful() ? 1 : 0;
-	}
+        @Override
+        public void map(ImmutableBytesWritable ikey, Result values,
+                        Context context) throws IOException, InterruptedException {
 
-	public static void main(String[] args) throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		Logger logger = LoggerFactory.getLogger(CrawlerDriver.class);
-		try {
-			int returnCode = ToolRunner.run(new CrawlerDriver(), args);
-			System.exit(returnCode);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			logger.error(e.getMessage());
-		}
-	}
+            for (Cell cell : values.rawCells()) {
+                boolean flag = Boolean.parseBoolean(Bytes.toString(CellUtil
+                        .cloneValue(cell)));
+                if (flag == false) {
+                    key.set(CellUtil.cloneRow(cell));
+                    context.write(key, value);
+                }
+            }
+        }
+
+    }
+
+    public static class CrawlerReducer extends
+            TableReducer<Text, LongWritable, ImmutableBytesWritable> {
+
+        @Override
+        public void reduce(Text url, Iterable<LongWritable> values,
+                           Context context) throws IOException, InterruptedException {
+            logger.info("Start CrawlerReducer...");
+            logger.info("url:" + url);
+            if (url != null && url.toString() != "") {
+                String document = Downloader.Download(url);
+                if (null != document) {
+                    Put put = new Put(Bytes.toBytes(url.toString()));
+                    DocumentWritable documentWritable = new DocumentWritable(
+                            url.toString(), document);
+                    put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("document"), Bytes.toBytes(documentWritable.getDocument()));
+                    put.addColumn(Bytes.toBytes("doc"),
+                            Bytes.toBytes("redirectFrom"),
+                            Bytes.toBytes(documentWritable.getRedirectFrom()));
+                    put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("metaFollow"),
+                            Bytes.toBytes(documentWritable.getMetaFollow()));
+                    put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("metaIndex"),
+                            Bytes.toBytes(documentWritable.getMetaIndex()));
+                    context.write(
+                            new ImmutableBytesWritable(Bytes.toBytes(url
+                                    .toString())), put);
+                }
+            }
+
+        }
+    }
 
 }

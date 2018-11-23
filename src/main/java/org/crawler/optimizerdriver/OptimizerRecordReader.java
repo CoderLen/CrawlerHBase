@@ -1,7 +1,6 @@
 package org.crawler.optimizerdriver;
 
-import java.io.IOException;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -16,134 +15,138 @@ import org.apache.hadoop.util.LineReader;
 import org.crawler.util.OutLinksWritable;
 import org.crawler.util.TextArrayWritable;
 
-public class OptimizerRecordReader extends RecordReader<Text,OutLinksWritable>{
+import java.io.IOException;
 
-	private LineReader in;
-	private boolean more = false;
-	
-	private Text key = null;
-	private OutLinksWritable value = null;
-	
-	private long start;
-	private long pos;
-	private long end;
-	
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		if(null != in){
-			in.close();
-		}
-	}
 
-	@Override
-	public Text getCurrentKey() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return key;
-	}
+@Slf4j
+public class OptimizerRecordReader extends RecordReader<Text, OutLinksWritable> {
 
-	@Override
-	public OutLinksWritable getCurrentValue() throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		return value;
-	}
+    private LineReader in;
+    private boolean more = false;
 
-	@Override
-	public float getProgress() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		// TODO Auto-generated method stub
-		if(false == more || end == start){
-			return 0f;
-		}else{
-			return Math.min(1.0f, (pos - start)/(end - start));
-		}
-	}
+    private Text key = null;
+    private OutLinksWritable value = null;
 
-	@Override
-	public void initialize(InputSplit split, TaskAttemptContext context)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		FileSplit fileSplit = (FileSplit)split;
-		start = fileSplit.getStart();
-		end = start + fileSplit.getLength();
-		
-		final Path file = fileSplit.getPath();
-		FileSystem fs = file.getFileSystem(context.getConfiguration());
-		FSDataInputStream fileIn = fs.open(fileSplit.getPath());
-		
-		fileIn.seek(start);
-		
-		in = new LineReader(fileIn,context.getConfiguration());
-		if(start != 0){
-			start += in.readLine(new Text(), 0, maxBytesToConsume(start));
-		}
-	}
+    private long start;
+    private long pos;
+    private long end;
 
-	private int maxBytesToConsume(long pos){
-		return (int)Math.min(Integer.MAX_VALUE, end - pos);
-	}
-	
-	@Override
-	public boolean nextKeyValue() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		if(null == key){
-			key = new Text();
-		}
-		if(null == value){
-			value = new OutLinksWritable();
-		}
-		
-		Text nowline = new Text();
-		int readsize = in.readLine(nowline);
-		//¸üÐÂµ±Ç°¶ÁÈ¡µ½µÄÎ»ÖÃ
-		pos += readsize;
-		//Èç¹ûposÖµ´óÓÚµÈÓÚend£¬ËµÃ÷´Ë·ÖÆ¬ÒÑ¾­¶ÁÈ¡Íê±Ï
-		if(pos >= end){
-			more = false;
-			return false;
-		}
-		
-		if(0 == readsize){
-			key = null;
-			value = null;
-			more = false;//´Ë´¦ËµÃ÷ÒÑ¾­¶ÁÈ¡µ½ÎÄ¼þÄ©Î²
-			return false;
-		}
-		
-		String[] keyandvalue = nowline.toString().split("\t");
-		//ÅÅ³ýµÚÒ»ÐÐ
-		if(keyandvalue[0].endsWith("\"CITING\"")){
-			readsize = in.readLine(nowline);
-			//¸üÐÂµ±Ç°¶ÁÈ¡µ½Î»ÖÃ
-			pos += readsize;
-			if(0 == readsize){
-				more = false;
-				return false;
-			}
-			//ÖØÐÂ»®·Ö
-			keyandvalue = nowline.toString().split(",");
-		}
-		
-		key.set(keyandvalue[0]);
-		String[] values = keyandvalue[1].toString().split("\\|");
-		
-		if(values.length > 3){
-			Text[] urltext = new Text[values.length - 2];
-			for(int i=0;i<values.length - 2;i++){
-				System.out.println("url:"+values[i]);
-				urltext[i] = new Text(values[i]);
-			}
-			LongWritable timestramp = new LongWritable(Long.parseLong(values[values.length-1]));
-			IntWritable typeOfOutLink = new IntWritable(Integer.parseInt(values[values.length-2]));
-			//timestramp.set(Long.parseLong(values[values.length-2]));
-			TextArrayWritable urls = new TextArrayWritable(urltext);
-			value.setOutLinks(urls);
-			value.setTimeStamp(timestramp);
-			value.setTypeOfOutlink(typeOfOutLink);
-		}
-		
-		return true;
-	}
+    @Override
+    public void close() throws IOException {
+        // TODO Auto-generated method stub
+        if (null != in) {
+            in.close();
+        }
+    }
+
+    @Override
+    public Text getCurrentKey() throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return key;
+    }
+
+    @Override
+    public OutLinksWritable getCurrentValue() throws IOException,
+            InterruptedException {
+        // TODO Auto-generated method stub
+        return value;
+    }
+
+    @Override
+    public float getProgress() throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        // TODO Auto-generated method stub
+        if (false == more || end == start) {
+            return 0f;
+        } else {
+            return Math.min(1.0f, (pos - start) / (end - start));
+        }
+    }
+
+    @Override
+    public void initialize(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        FileSplit fileSplit = (FileSplit) split;
+        start = fileSplit.getStart();
+        end = start + fileSplit.getLength();
+
+        final Path file = fileSplit.getPath();
+        FileSystem fs = file.getFileSystem(context.getConfiguration());
+        FSDataInputStream fileIn = fs.open(fileSplit.getPath());
+
+        fileIn.seek(start);
+
+        in = new LineReader(fileIn, context.getConfiguration());
+        if (start != 0) {
+            start += in.readLine(new Text(), 0, maxBytesToConsume(start));
+        }
+    }
+
+    private int maxBytesToConsume(long pos) {
+        return (int) Math.min(Integer.MAX_VALUE, end - pos);
+    }
+
+    @Override
+    public boolean nextKeyValue() throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        if (null == key) {
+            key = new Text();
+        }
+        if (null == value) {
+            value = new OutLinksWritable();
+        }
+
+        Text nowline = new Text();
+        int readsize = in.readLine(nowline);
+        //æ›´æ–°å½“å‰è¯»å–åˆ°çš„ä½ç½®
+        pos += readsize;
+        //å¦‚æžœposå€¼å¤§äºŽç­‰äºŽendï¼Œè¯´æ˜Žæ­¤åˆ†ç‰‡å·²ç»è¯»å–å®Œæ¯•
+        if (pos >= end) {
+            more = false;
+            return false;
+        }
+
+        if (0 == readsize) {
+            key = null;
+            value = null;
+            more = false;//æ­¤å¤„è¯´æ˜Žå·²ç»è¯»å–åˆ°æ–‡ä»¶æœ«å°¾
+            return false;
+        }
+
+        String[] keyandvalue = nowline.toString().split("\t");
+        //æŽ’é™¤ç¬¬ä¸€è¡Œ
+        if (keyandvalue[0].endsWith("\"CITING\"")) {
+            readsize = in.readLine(nowline);
+            //æ›´æ–°å½“å‰è¯»å–åˆ°ä½ç½®
+            pos += readsize;
+            if (0 == readsize) {
+                more = false;
+                return false;
+            }
+            //é‡æ–°åˆ’åˆ†
+            keyandvalue = nowline.toString().split(",");
+        }
+
+        key.set(keyandvalue[0]);
+        String[] values = keyandvalue[1].toString().split("\\|");
+
+        if (values.length > 3) {
+            Text[] urltext = new Text[values.length - 2];
+            for (int i = 0; i < values.length - 2; i++) {
+                log.info("url:" + values[i]);
+                urltext[i] = new Text(values[i]);
+            }
+            LongWritable timestramp = new LongWritable(Long.parseLong(values[values.length - 1]));
+            IntWritable typeOfOutLink = new IntWritable(Integer.parseInt(values[values.length - 2]));
+            //timestramp.set(Long.parseLong(values[values.length-2]));
+            TextArrayWritable urls = new TextArrayWritable(urltext);
+            value.setOutLinks(urls);
+            value.setTimeStamp(timestramp);
+            value.setTypeOfOutlink(typeOfOutLink);
+        }
+
+        return true;
+    }
 
 }

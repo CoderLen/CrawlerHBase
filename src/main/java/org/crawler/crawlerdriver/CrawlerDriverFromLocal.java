@@ -1,10 +1,9 @@
 /**
- * 
+ *
  */
 package org.crawler.crawlerdriver;
 
-import java.io.IOException;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -25,90 +24,94 @@ import org.crawler.util.Downloader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+
 /**
  * @author lin
- *
  */
+@Slf4j
 public class CrawlerDriverFromLocal {
 
-	
-	public static Logger logger = LoggerFactory.getLogger(CrawlerDriverFromLocal.class);
 
-	public static class InverseMapper extends
-			Mapper<LongWritable, Text, Text, LongWritable> {
+    public static Logger logger = LoggerFactory.getLogger(CrawlerDriverFromLocal.class);
 
-		public void map(LongWritable ikey, Text ivalue, Context context)
-				throws IOException, InterruptedException {
-			logger.info("InverseMapper.....");
-			 System.out.println("key: " + ikey);
-			 System.out.println("value:" + ivalue);
-			logger.info("InverseMapper End!");
-			context.write(ivalue, ikey);
-		}
+    /**
+     * @param args
+     * @throws IOException
+     * @throws InterruptedException
+     * @throws ClassNotFoundException
+     */
 
-	}
+    public static void main(String[] args) throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        String tablename = "crawler";
 
-	public static class CrawlerReducer extends TableReducer<Text, LongWritable,ImmutableBytesWritable>{
-		public void reduce(Text url, Iterable<LongWritable> values,Context context) throws IOException, InterruptedException {
-			System.out.println("Start CrawlerReducer...");
-			logger.info("url:" + url);
-			System.out.println("url:" + url);
-			if (url != null && url.toString() != "") {
-				if (url.toString().contains("http://")) {
-					String document = Downloader.Download(url);
-					System.out.println("url:" + url);
-					System.out.println("document:" + document);
-					if (null != document) {
-						Put put = new Put(Bytes.toBytes(url.toString()));
-						DocumentWritable documentWritable = new DocumentWritable(url.toString(), document);
-						put.add(Bytes.toBytes("doc"), Bytes.toBytes("document"), Bytes.toBytes(documentWritable.getDocument()));
-						put.add(Bytes.toBytes("doc"), Bytes.toBytes("redirectFrom"), Bytes.toBytes(documentWritable.getRedirectFrom()));
-						put.add(Bytes.toBytes("doc"), Bytes.toBytes("metaFollow"), Bytes.toBytes(documentWritable.getMetaFollow()));
-						put.add(Bytes.toBytes("doc"), Bytes.toBytes("metaIndex"), Bytes.toBytes(documentWritable.getMetaIndex()));
-						context.write(new ImmutableBytesWritable(Bytes.toBytes(url.toString())), put);
-					}
-				}
-			}
+        Configuration conf = HBaseConfiguration.create();
 
-		}
-	}
-	/**
-	 * @param args
-	 * @throws IOException 
-	 * @throws InterruptedException 
-	 * @throws ClassNotFoundException 
-	 */
+        Job job = Job.getInstance(conf, "CrawlerDriver");
+        job.setJarByClass(CrawlerDriverFromLocal.class);
 
-	public static void main(String[] args) throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		String tablename = "crawler";
-		
-		Configuration conf=HBaseConfiguration.create(); 
-		
-		Job job = Job.getInstance(conf, "CrawlerDriver");
-		job.setJarByClass(CrawlerDriverFromLocal.class);
-		
-		job.setMapperClass(InverseMapper.class);
+        job.setMapperClass(InverseMapper.class);
 
-		job.setPartitionerClass(HostPartitioner.class);
-		job.setInputFormatClass(TextInputFormat.class);
-		job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE,tablename);  
-		job.setMapOutputKeyClass(Text.class);
-		job.setMapOutputValueClass(LongWritable.class);
-		// TODO: specify output types
-		job.setOutputKeyClass(ImmutableBytesWritable.class);
-		job.setOutputValueClass(Put.class); 
-		job.setOutputFormatClass(TableOutputFormat.class);
-	    TableMapReduceUtil.initTableReducerJob(tablename, CrawlerReducer.class, job);
-		FileInputFormat.addInputPath(job, new Path("hdfs://localhost:9000/in"));
+        job.setPartitionerClass(HostPartitioner.class);
+        job.setInputFormatClass(TextInputFormat.class);
+        job.getConfiguration().set(TableOutputFormat.OUTPUT_TABLE, tablename);
+        job.setMapOutputKeyClass(Text.class);
+        job.setMapOutputValueClass(LongWritable.class);
+        job.setOutputKeyClass(ImmutableBytesWritable.class);
+        job.setOutputValueClass(Put.class);
+        job.setOutputFormatClass(TableOutputFormat.class);
+        TableMapReduceUtil.initTableReducerJob(tablename, CrawlerReducer.class, job);
+        FileInputFormat.addInputPath(job, new Path("hdfs://localhost:9000/in"));
 
-	    try {
-			System.exit(job.waitForCompletion(true) ? 0 : 1);
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}  
-	}
-	
+        try {
+            System.exit(job.waitForCompletion(true) ? 0 : 1);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static class InverseMapper extends
+            Mapper<LongWritable, Text, Text, LongWritable> {
+
+        @Override
+        public void map(LongWritable ikey, Text ivalue, Context context)
+                throws IOException, InterruptedException {
+            logger.info("InverseMapper.....");
+            log.info("key: " + ikey);
+            log.info("value:" + ivalue);
+            logger.info("InverseMapper End!");
+            context.write(ivalue, ikey);
+        }
+
+    }
+
+    public static class CrawlerReducer extends TableReducer<Text, LongWritable, ImmutableBytesWritable> {
+
+        @Override
+        public void reduce(Text url, Iterable<LongWritable> values, Context context) throws IOException, InterruptedException {
+            log.info("Start CrawlerReducer...");
+            logger.info("url:" + url);
+            log.info("url:" + url);
+            if (url != null && url.toString() != "") {
+                if (url.toString().contains("http://")) {
+                    String document = Downloader.Download(url);
+                    log.info("url:" + url);
+                    log.info("document:" + document);
+                    if (null != document) {
+                        Put put = new Put(Bytes.toBytes(url.toString()));
+                        DocumentWritable documentWritable = new DocumentWritable(url.toString(), document);
+                        put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("document"), Bytes.toBytes(documentWritable.getDocument()));
+                        put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("redirectFrom"), Bytes.toBytes(documentWritable.getRedirectFrom()));
+                        put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("metaFollow"), Bytes.toBytes(documentWritable.getMetaFollow()));
+                        put.addColumn(Bytes.toBytes("doc"), Bytes.toBytes("metaIndex"), Bytes.toBytes(documentWritable.getMetaIndex()));
+                        context.write(new ImmutableBytesWritable(Bytes.toBytes(url.toString())), put);
+                    }
+                }
+            }
+
+        }
+    }
+
 
 }

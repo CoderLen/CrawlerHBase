@@ -1,7 +1,6 @@
 package org.crawler.util;
 
-import java.io.IOException;
-
+import lombok.extern.slf4j.Slf4j;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -12,134 +11,134 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.hadoop.util.LineReader;
 
-public class ParserRecordReader extends RecordReader<Text, DocumentWritable> {
-	
-	//private static final Log LOG = LogFactory.getLog(ParserRecordReader.class); 
-	
-    private LineReader in; //ÊäÈëÁ÷
-    private boolean more = true; //ÌáÊ¾ºóĞø»¹ÓĞÃ»ÓĞÊı¾İ
-    
-    private Text key = null; 
-    private DocumentWritable value = null;
-    
-    //ÕâÈı¸öÊÇ±£´æµ±Ç°¶ÁÈ¡µ½Î»ÖÃ£¨¼´ÎÄ¼şÖĞÎ»ÖÃ£©
-    private long start; 
-    private long pos; 
-    private long end; 
-    
-    /**
-	 * ³õÊ¼»¯º¯Êı
-	 */
-	@Override
-	public void initialize(InputSplit split, TaskAttemptContext context)
-			throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		FileSplit inputSplit = (FileSplit)split;
-		start = inputSplit.getStart();//µÃµ½´Ë·ÖÆ¬µÄ¿ªÍ·Î»ÖÃ
-		end = start + inputSplit.getLength();//µÃµ½´Ë·ÖÆ¬µÄ½áÊøÎ»ÖÃ
-		
-		final Path file = inputSplit.getPath();
-		//´ò¿ªÎÄ¼ş
-		FileSystem fs = file.getFileSystem(context.getConfiguration());
-		FSDataInputStream fileIn = fs.open(inputSplit.getPath());
-		
-		//½«ÎÄ¼şÖ¸ÕëÒÆ¶¯µ½µ±Ç°·ÖÆ¬£¬ÒòÎªÃ¿´ÎÄ¬ÈÏ´ò¿ªÎÄ¼şÊ±£¬ÆäÖ¸ÕëÖ¸Ïò¿ªÍ·
-		fileIn.seek(start);
-		
-		in = new LineReader(fileIn,context.getConfiguration());
-		if(start != 0){
-			//Èç¹ûÕâ²»ÊÇµÚÒ»¸ö·ÖÆ¬£¬ÄÇÃ´¼ÙÉèµÚÒ»¸ö·ÖÆ¬0-4£¬ÄÇÃ´µÚ4¸öÎ»ÖÃ±»¶ÁÈ¡£¬ÔòĞèÒªÌø¹ı4£¬·ñÔò»á²úÉú¶ÁÈë´íÎóÒòÎªÄã»ØÍ·ÓÖÈ¥¶ÁÖ®Ç°¶Á¹ıµÄµØ·½
-			start += in.readLine(new Text(), 0, maxBytesToConsume(start));
-		}
-		pos = start;
-	}
-	
-	private int maxBytesToConsume(long pos){
-		return (int)Math.min(Integer.MAX_VALUE, end - pos);
-	}
-	
-	/**
-	 * ÏÂÒ»×éÖµ
-	 */
-	@Override
-	public boolean nextKeyValue() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		if(null == key){
-			key = new Text();
-		}
-		if(null == value){
-			value = new DocumentWritable();
-		}
-		Text nowline = new Text();//±£´æµ±Ç°ĞĞÄÚÈİ
-		int readsize = in.readLine(nowline);
-		//¸üĞÂµ±Ç°¶ÁÈ¡µ½µÄÎ»ÖÃ
-		pos += readsize;
-		//Èç¹ûposÖµ´óÓÚµÈÓÚend£¬ËµÃ÷´Ë·ÖÆ¬ÒÑ¾­¶ÁÈ¡Íê±Ï
-		if(pos >= end){
-			more = false;
-			return false;
-		}
-		
-		if(0 == readsize){
-			key = null;
-			value = null;
-			more = false;//´Ë´¦ËµÃ÷ÒÑ¾­¶ÁÈ¡µ½ÎÄ¼şÄ©Î²
-			return false;
-		}
-		
-		String[] keyandvalue = nowline.toString().split("\t");
-		//ÅÅ³ıµÚÒ»ĞĞ
-		if(keyandvalue[0].endsWith("\"CITING\"")){
-			readsize = in.readLine(nowline);
-			//¸üĞÂµ±Ç°¶ÁÈ¡µ½Î»ÖÃ
-			pos += readsize;
-			if(0 == readsize){
-				more = false;
-				return false;
-			}
-			//ÖØĞÂ»®·Ö
-			keyandvalue = nowline.toString().split(",");
-		}
-		
-		//µÃµ½keyºÍvalue
-		
-		key.set(keyandvalue[0]);
-		value.setDocument(keyandvalue[1]);
-		value.setRedirectFrom(keyandvalue[2]);
-		value.setMetaFollow(Boolean.getBoolean(keyandvalue[3]));
-		value.setMetaIndex(Boolean.getBoolean(keyandvalue[4]));
-		System.out.println("key1 is :"+key);
-		System.out.println("value1 is : "+value.toString());
+import java.io.IOException;
 
-		return true;
-	} 
-   
-	@Override
-	public void close() throws IOException {
-		// TODO Auto-generated method stub
-		if(null != in){
-			in.close();
-		}
-	}
-	@Override
-	public Text getCurrentKey() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		return key;
-	}
-	@Override
-	public DocumentWritable getCurrentValue() throws IOException,
-			InterruptedException {
-		// TODO Auto-generated method stub
-		return value;
-	}
-	@Override
-	public float getProgress() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
-		if(false == more || end == start){
-			return 0f;
-		}else{
-			return Math.min(1.0f, (pos - start)/(end - start));
-		}
-	}
-	
+@Slf4j
+public class ParserRecordReader extends RecordReader<Text, DocumentWritable> {
+
+
+    private LineReader in; //è¾“å…¥æµ
+    private boolean more = true; //æç¤ºåç»­è¿˜æœ‰æ²¡æœ‰æ•°æ®
+
+    private Text key = null;
+    private DocumentWritable value = null;
+
+    //è¿™ä¸‰ä¸ªæ˜¯ä¿å­˜å½“å‰è¯»å–åˆ°ä½ç½®ï¼ˆå³æ–‡ä»¶ä¸­ä½ç½®ï¼‰
+    private long start;
+    private long pos;
+    private long end;
+
+    /**
+     * åˆå§‹åŒ–å‡½æ•°
+     */
+    @Override
+    public void initialize(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
+        FileSplit inputSplit = (FileSplit) split;
+        //å¾—åˆ°æ­¤åˆ†ç‰‡çš„å¼€å¤´ä½ç½®
+        start = inputSplit.getStart();
+        //å¾—åˆ°æ­¤åˆ†ç‰‡çš„ç»“æŸä½ç½®
+        end = start + inputSplit.getLength();
+        final Path file = inputSplit.getPath();
+        //æ‰“å¼€æ–‡ä»¶
+        FileSystem fs = file.getFileSystem(context.getConfiguration());
+        FSDataInputStream fileIn = fs.open(inputSplit.getPath());
+        //å°†æ–‡ä»¶æŒ‡é’ˆç§»åŠ¨åˆ°å½“å‰åˆ†ç‰‡ï¼Œå› ä¸ºæ¯æ¬¡é»˜è®¤æ‰“å¼€æ–‡ä»¶æ—¶ï¼Œå…¶æŒ‡é’ˆæŒ‡å‘å¼€å¤´
+        fileIn.seek(start);
+        in = new LineReader(fileIn, context.getConfiguration());
+        if (start != 0) {
+            //å¦‚æœè¿™ä¸æ˜¯ç¬¬ä¸€ä¸ªåˆ†ç‰‡ï¼Œé‚£ä¹ˆå‡è®¾ç¬¬ä¸€ä¸ªåˆ†ç‰‡0-4ï¼Œé‚£ä¹ˆç¬¬4ä¸ªä½ç½®è¢«è¯»å–ï¼Œåˆ™éœ€è¦è·³è¿‡4ï¼Œå¦åˆ™ä¼šäº§ç”Ÿè¯»å…¥é”™è¯¯å› ä¸ºä½ å›å¤´åˆå»è¯»ä¹‹å‰è¯»è¿‡çš„åœ°æ–¹
+            start += in.readLine(new Text(), 0, maxBytesToConsume(start));
+        }
+        pos = start;
+    }
+
+    private int maxBytesToConsume(long pos) {
+        return (int) Math.min(Integer.MAX_VALUE, end - pos);
+    }
+
+    /**
+     * ä¸‹ä¸€ç»„å€¼
+     */
+    @Override
+    public boolean nextKeyValue() throws IOException, InterruptedException {
+        if (null == key) {
+            key = new Text();
+        }
+        if (null == value) {
+            value = new DocumentWritable();
+        }
+        Text nowline = new Text();//ä¿å­˜å½“å‰è¡Œå†…å®¹
+        int readsize = in.readLine(nowline);
+        //æ›´æ–°å½“å‰è¯»å–åˆ°çš„ä½ç½®
+        pos += readsize;
+        //å¦‚æœposå€¼å¤§äºç­‰äºendï¼Œè¯´æ˜æ­¤åˆ†ç‰‡å·²ç»è¯»å–å®Œæ¯•
+        if (pos >= end) {
+            more = false;
+            return false;
+        }
+
+        if (0 == readsize) {
+            key = null;
+            value = null;
+            more = false;//æ­¤å¤„è¯´æ˜å·²ç»è¯»å–åˆ°æ–‡ä»¶æœ«å°¾
+            return false;
+        }
+
+        String[] keyandvalue = nowline.toString().split("\t");
+        //æ’é™¤ç¬¬ä¸€è¡Œ
+        if (keyandvalue[0].endsWith("\"CITING\"")) {
+            readsize = in.readLine(nowline);
+            //æ›´æ–°å½“å‰è¯»å–åˆ°ä½ç½®
+            pos += readsize;
+            if (0 == readsize) {
+                more = false;
+                return false;
+            }
+            //é‡æ–°åˆ’åˆ†
+            keyandvalue = nowline.toString().split(",");
+        }
+
+        //å¾—åˆ°keyå’Œvalue
+
+        key.set(keyandvalue[0]);
+        value.setDocument(keyandvalue[1]);
+        value.setRedirectFrom(keyandvalue[2]);
+        value.setMetaFollow(Boolean.getBoolean(keyandvalue[3]));
+        value.setMetaIndex(Boolean.getBoolean(keyandvalue[4]));
+        log.info("key1 is :" + key);
+        log.info("value1 is : " + value.toString());
+
+        return true;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // TODO Auto-generated method stub
+        if (null != in) {
+            in.close();
+        }
+    }
+
+    @Override
+    public Text getCurrentKey() throws IOException, InterruptedException {
+        // TODO Auto-generated method stub
+        return key;
+    }
+
+    @Override
+    public DocumentWritable getCurrentValue() throws IOException,
+            InterruptedException {
+        return value;
+    }
+
+    @Override
+    public float getProgress() throws IOException, InterruptedException {
+        if (false == more || end == start) {
+            return 0f;
+        } else {
+            return Math.min(1.0f, (pos - start) / (end - start));
+        }
+    }
+
 }

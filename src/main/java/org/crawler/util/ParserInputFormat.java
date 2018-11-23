@@ -7,10 +7,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 
 public class ParserInputFormat extends FileInputFormat<Text, DocumentWritable> {
-	
+
     @Override
-    public RecordReader<Text, DocumentWritable> createRecordReader( 
-            InputSplit split, TaskAttemptContext context) { 
-        return new ParserRecordReader(); 
-    } 
+    public RecordReader<Text, DocumentWritable> createRecordReader(
+            InputSplit split, TaskAttemptContext context) {
+        return new ParserRecordReader();
+    }
 }
