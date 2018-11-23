@@ -24,29 +24,18 @@ public class Crawler {
 
     public static void main(String[] args) throws Exception {
         Crawler crawleMain = new Crawler();
-
-        if (true) {
-            int depth = 1;
-            for (int i = 1; i <= depth; i++) {
-                log.info("? " + i + " ?:????CrawlerDriver,????");
-                int crawlerCode = ToolRunner.run(crawleMain.crawler, args);
-                if (crawlerCode == 1) {
-                    log.info("? " + i + " ?:????ParserDriver,??????URL");
-                    int parserCode = ToolRunner.run(crawleMain.parser, args);
-                    if (parserCode == 1) {
-                        log.info("? " + i + " ?:????OptimizerDriver,??URL");
-                        int optimizerCode = ToolRunner.run(crawleMain.optimizer, args);
-                        if (optimizerCode == 1) {
-                            log.info("? " + i + " ?:????HtmlToXMLDriver,??????XML??");
-                            int convertCode = ToolRunner.run(crawleMain.xml_convert, args);
-                            if (convertCode == 1) {
-                                log.info("? " + i + " ???????");
-                            }
-                        }
+        int depth = 1;
+        for (int i = 1; i <= depth; i++) {
+            int crawlerCode = ToolRunner.run(crawleMain.crawler, args);
+            if (crawlerCode == 1) {
+                int parserCode = ToolRunner.run(crawleMain.parser, args);
+                if (parserCode == 1) {
+                    int optimizerCode = ToolRunner.run(crawleMain.optimizer, args);
+                    if (optimizerCode == 1) {
+                        ToolRunner.run(crawleMain.xml_convert, args);
                     }
                 }
             }
-
         }
     }
 
